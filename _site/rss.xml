@@ -5,16 +5,14 @@
         <description>scientia data - Asghar Ghorbani</description>
         <link>http://username.github.io</link>
         <atom:link href="http://username.github.io/rss.xml" rel="self" type="application/rss+xml" />
-        <lastBuildDate>Fri, 16 Dec 2016 21:19:50 +0100</lastBuildDate>
-        <pubDate>Fri, 16 Dec 2016 21:19:50 +0100</pubDate>
+        <lastBuildDate>Fri, 16 Dec 2016 21:27:48 +0100</lastBuildDate>
+        <pubDate>Fri, 16 Dec 2016 21:27:48 +0100</pubDate>
         <ttl>60</ttl>
 
 
         <item>
                 <title>Data science with H2O</title>
                 <description>
-&lt;p&gt;&lt;em&gt;The source of the follwing article can be obtained from &lt;a href=&quot;https://github.com/a-ghorbani/h2o_examples/blob/master/Telco_Customer_Churn_H2O.Rmd&quot;&gt;here&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-
 &lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
 
 &lt;head&gt;
@@ -47,8 +45,6 @@ if (window.hljs &amp;&amp; document.readyState &amp;&amp; document.readyState ==
 &lt;/head&gt;
 
 &lt;body&gt;
-
-&lt;div class=&quot;container-fluid main-container&quot;&gt;
 
 
 
@@ -1193,7 +1189,7 @@ ROC1$auc&lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
 
-&lt;/div&gt;
+&amp;lt;/div&amp;gt;
 
 &lt;script&gt;
 

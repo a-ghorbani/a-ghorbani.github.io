@@ -4,7 +4,7 @@
  <title>scientia data</title>
  <link href="http://username.github.io/atom.xml" rel="self"/>
  <link href="http://username.github.io"/>
- <updated>2016-12-16T21:19:50+01:00</updated>
+ <updated>2016-12-16T21:27:48+01:00</updated>
  <id>http://username.github.io</id>
  <author>
    <name>Asghar Ghorbani</name>
@@ -18,8 +18,6 @@
    <updated>2016-11-24T00:00:00+01:00</updated>
    <id>http://username.github.io/2016/11/24/data-science-with-h2o</id>
    <content type="html">
-&lt;p&gt;&lt;em&gt;The source of the follwing article can be obtained from &lt;a href=&quot;https://github.com/a-ghorbani/h2o_examples/blob/master/Telco_Customer_Churn_H2O.Rmd&quot;&gt;here&lt;/a&gt;.&lt;/em&gt;&lt;/p&gt;
-
 &lt;html xmlns=&quot;http://www.w3.org/1999/xhtml&quot;&gt;
 
 &lt;head&gt;
@@ -52,8 +50,6 @@ if (window.hljs &amp;&amp; document.readyState &amp;&amp; document.readyState ==
 &lt;/head&gt;
 
 &lt;body&gt;
-
-&lt;div class=&quot;container-fluid main-container&quot;&gt;
 
 
 
@@ -1198,7 +1194,7 @@ ROC1$auc&lt;/code&gt;&lt;/pre&gt;
 &lt;/div&gt;
 
 
-&lt;/div&gt;
+&amp;lt;/div&amp;gt;
 
 &lt;script&gt;
 
