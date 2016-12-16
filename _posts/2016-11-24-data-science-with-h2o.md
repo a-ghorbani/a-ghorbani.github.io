@@ -2,6 +2,7 @@
 layout: post
 title: "Data science with H2O"
 tagline: "A classification problem: Telco Customer Churn"
+comment: true
 description: ""
 category: 
 tags: [H2O, Big Data, Machine learning, Data science, Churn]
