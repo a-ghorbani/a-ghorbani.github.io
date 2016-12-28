@@ -17,10 +17,13 @@ GEM
       pathutil (~> 0.9)
       rouge (~> 1.7)
       safe_yaml (~> 1.0)
+    jekyll-compose (0.5.0)
+      jekyll (>= 3.0.0)
     jekyll-sass-converter (1.5.0)
       sass (~> 3.4)
     jekyll-sitemap (0.12.0)
       jekyll (~> 3.3)
+    jekyll-swiss (0.4.0)
     jekyll-watch (1.5.0)
       listen (~> 3.0, < 3.1)
     kramdown (1.13.0)
@@ -53,7 +56,9 @@ PLATFORMS
 
 DEPENDENCIES
   jekyll (~> 3.1)
+  jekyll-compose
   jekyll-sitemap
+  jekyll-swiss
   pygments.rb
 
 BUNDLED WITH

@@ -3,12 +3,163 @@
 <channel>
         <title>scientia data</title>
         <description>scientia data - Asghar Ghorbani</description>
-        <link>http://username.github.io</link>
-        <atom:link href="http://username.github.io/rss.xml" rel="self" type="application/rss+xml" />
-        <lastBuildDate>Fri, 16 Dec 2016 21:58:27 +0100</lastBuildDate>
-        <pubDate>Fri, 16 Dec 2016 21:58:27 +0100</pubDate>
+        <link>http://a-ghorbani.github.io</link>
+        <atom:link href="http://a-ghorbani.github.io/rss.xml" rel="self" type="application/rss+xml" />
+        <lastBuildDate>Tue, 27 Dec 2016 20:56:22 +0100</lastBuildDate>
+        <pubDate>Tue, 27 Dec 2016 20:56:22 +0100</pubDate>
         <ttl>60</ttl>
 
+
+        <item>
+                <title>Spark on Yarn and virtual memory error</title>
+                <description>
+&lt;p&gt;Recently I wanted to try out some piece of code on Spark using a &lt;a href=&quot;https://github.com/a-ghorbani/docker-spark-jupyter-scala&quot;&gt;Docker image&lt;/a&gt;.
+In this image Java-8 is installed (instead of Java-7).&lt;/p&gt;
+
+&lt;p&gt;Running &lt;code class=&quot;highlighter-rouge&quot;&gt;spark-shell&lt;/code&gt; in yarn mode led to the following error in the shell:&lt;/p&gt;
+
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;6/12/25 16:56:11 ERROR spark.SparkContext: Error initializing SparkContext.
+org.apache.spark.SparkException: Yarn application has already ended! It might have been killed or unable to launch application master.
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;and in the log file I have observed the following error of the virtual memory checker::&lt;/p&gt;
+&lt;div class=&quot;highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;Current usage: 304.1 MB of 1 GB physical memory used;
+*2.2 GB of 2.1 GB virtual memory used*. Killing container.
+{: style=&quot;color:gray;&quot;}
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+
+&lt;p&gt;That is indeed a known problem,
+see for example
+&lt;a href=&quot;https://www.ibm.com/developerworks/community/blogs/kevgrig/entry/linux_glibc_2_10_rhel_6_malloc_may_show_excessive_virtual_memory_usage?lang=en&quot;&gt;here&lt;/a&gt;,
+&lt;a href=&quot;http://stackoverflow.com/questions/38988941/running-yarn-with-spark-not-working-with-java-8&quot;&gt;here&lt;/a&gt;,
+&lt;a href=&quot;https://issues.apache.org/jira/browse/YARN-4714&quot;&gt;here&lt;/a&gt;,
+&lt;a href=&quot;http://stackoverflow.com/questions/39467761/how-to-know-what-is-the-reason-for-closedchannelexceptions-with-spark-shell-in-y&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;This problem happens due to the combination of the following points:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;&lt;strong&gt;glibc&amp;gt;=2.10&lt;/strong&gt;: Virtual memory footprint of processes has grown a lot since introduction of glibc:2.10 (e.g. in CentOS&amp;gt;=6) due to some new features; memory pool per thread.&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Java-8&lt;/strong&gt;: The above mentioned virtual memory footprint is more pronounced in Java-8 (compared to Java-7) due to &lt;em&gt;Metaspace&lt;/em&gt; (which has replaced &lt;em&gt;PermGen&lt;/em&gt;).&lt;/li&gt;
+  &lt;li&gt;&lt;strong&gt;Yarn&lt;/strong&gt;: Yarn kills process that exceeds the limits that has been set for the resources it monitors, and Yarn by default monitors virtual memory.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;We can resolve the problem by eliminating one or some of the above mentioned points.
+But before taking the action, let in short have a look at each of these points.&lt;/p&gt;
+
+&lt;h2 id=&quot;glibc210-memory-pools-arena&quot;&gt;glibc&amp;gt;=2.10 memory pools (Arena)&lt;/h2&gt;
+&lt;p&gt;Memory pool or &lt;strong&gt;arena&lt;/strong&gt; is structure that is shared between one or more threads from which threads allocate memory.
+During memory allocation by a thread the arena is locked, so leads to contention over memory allocation in a multi-threaded application.
+For a nice detailed explanation see &lt;a href=&quot;https://sourceware.org/glibc/wiki/MallocInternals&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;From verion 2.10 glibc has introduced a new arena allocator design, which aimed to improve performance of multithreaded processes by implementing per thread memory pool.
+That means each thread has its own pool that can allocate memory from, so no contention over Memory allocation.&lt;/p&gt;
+
+&lt;p&gt;This lead to increase of virtual memory (VIRT in top) footprint.
+Note that the only resource that is really consumed by these pools is the memory address space.
+The physical memory (RSS in top) is allocated only when memory allocation is requested by a thread.&lt;/p&gt;
+
+&lt;p&gt;In a 64-bit machine the address space is huge. The current implementations
+&lt;a href=&quot;https://en.wikipedia.org/wiki/X86-64#Virtual_address_space_details&quot;&gt;supports 256TB&lt;/a&gt;
+(including kernel space).
+So there should be no worry for this resource running out.
+See some additional explanation &lt;a href=&quot;https://siddhesh.in/posts/malloc-per-thread-arenas-in-glibc.html&quot;&gt;here&lt;/a&gt;&lt;/p&gt;
+
+&lt;p&gt;By default maximum number of arenas in a 64-bit machine is &lt;code class=&quot;highlighter-rouge&quot;&gt;#core * 8&lt;/code&gt;.
+Each  arena has a maximums size of 64MB.
+So if you are running you application on a 24 core machine that means the size of virtual memory should be in order of 24 * 8 * 64MB = 12GB.
+Even if your application physical memory is just few MB.
+The maximum number of Arena can be controlled by the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h2 id=&quot;java-8&quot;&gt;Java 8&lt;/h2&gt;
+
+&lt;p&gt;(Oracle) Java-8 makes the problem above more pronounced than Java-7 due to the fact that &lt;em&gt;PermGen&lt;/em&gt; moved into native memory space (i.e. no longer contiguous to the Java heap).
+And it is called &lt;em&gt;Metaspace&lt;/em&gt;.&lt;/p&gt;
+
+&lt;p&gt;That means memory allocation in &lt;em&gt;Metaspace&lt;/em&gt; it handled by &lt;em&gt;malloc()&lt;/em&gt;,
+consequently a multi-threaded app will end up with multiple arenas being created.
+More details &lt;a href=&quot;https://www.infoq.com/articles/Java-PERMGEN-Removed&quot;&gt;here&lt;/a&gt; &lt;a href=&quot;http://info.prelert.com/blog/java-8-and-virtual-memory-on-linux&quot;&gt;here&lt;/a&gt; and &lt;a href=&quot;https://dzone.com/articles/java-8-permgen-metaspace&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;In order to see it in practice, I ran two hello world Java apps, one single-threaded and one multi-threaded, with both openjdk-1.8 and 1.7 with various values for MALLOC_ARENA_MAX.
+And plotted VIRT and RSS in all cases.
+The source code I have used to create that can found im my &lt;a href=&quot;https://github.com/a-ghorbani/java-glibc-vmem-bechmark&quot;&gt;github&lt;/a&gt;.&lt;/p&gt;
+
+&lt;p&gt;&lt;img src=&quot;/images/posts/2016-12-23-spark-on-yarn-and-java-8-and-virtual-memory-error/plot_mems.png&quot; alt=&quot;vmem-vs-bm&quot; /&gt;&lt;/p&gt;
+
+&lt;p&gt;What is illustrated is virtual memory (vmem) and physical memory (pmem)&lt;sup id=&quot;fnref:pmem&quot;&gt;&lt;a href=&quot;#fn:pmem&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; (based on &lt;code class=&quot;highlighter-rouge&quot;&gt;ps&lt;/code&gt; VIRT and RSS) for various max number of arena, which is controlled by environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt;.
+Test parameters:&lt;/p&gt;
+&lt;ul&gt;
+  &lt;li&gt;JVM: java-7-openjdk-amd64 and java-8-openjdk-amd64&lt;/li&gt;
+  &lt;li&gt;Max number of arenas: 1, 15 and default (which should be 32 as well (#core&lt;em&gt;8 = 4&lt;/em&gt;8)).&lt;/li&gt;
+  &lt;li&gt;Threads: 32.&lt;/li&gt;
+  &lt;li&gt;Max heap size (Xmx): 100 MB.&lt;/li&gt;
+&lt;/ul&gt;
+
+&lt;p&gt;It can be seen that physical memory (pmem) for Java-7 is around 20-25MB and not that much variance.
+Java-8 consumes slightly more memory (slightly more than 25MB) and again not much variance.&lt;/p&gt;
+
+&lt;p&gt;However, it is obvious that things are different for virtual memory (vmem).
+It can be seen that with increasing max number of arena vmem increases as well.
+Also it can be seen that Java-8 takes around 1GB more virtual memory than Java-7.&lt;/p&gt;
+
+&lt;h2 id=&quot;yarn&quot;&gt;Yarn&lt;/h2&gt;
+&lt;p&gt;Yarn kills process that exceeds the limits that has been set for the resources it monitors.
+Yarn by default monitors virtual memory,
+which is controlled by &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-check-enabled&lt;/code&gt;,
+and the limit is controlled by &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt;.&lt;/p&gt;
+
+&lt;h1 id=&quot;so-how-to-solve-the-problem&quot;&gt;So how to solve the problem?&lt;/h1&gt;
+&lt;p&gt;I talked to much I guess, let get rid of the error.
+To resolve the error we can do one of the following:&lt;/p&gt;
+
+&lt;h2 id=&quot;set-the-max-number-of-arena&quot;&gt;Set the max number of Arena&lt;/h2&gt;
+&lt;p&gt;Java is different form than OS native processes in that Java processes allocate memory from JVM heap.
+And JVM allocates heap infrequently in large amounts.
+Therefore, Java apps will not benefit much from arenas as the native processes would.&lt;/p&gt;
+
+&lt;p&gt;So we can reduce the number of arena without much problem by setting &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt; in &lt;code class=&quot;highlighter-rouge&quot;&gt;hadoop-env.sh&lt;/code&gt;:&lt;/p&gt;
+&lt;div class=&quot;language-bash highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;MALLOC_ARENA_MAX&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;It’s been &lt;a href=&quot;https://issues.apache.org/jira/browse/HADOOP-7154&quot;&gt;suggested&lt;/a&gt; to use values like 2 to 4.&lt;/p&gt;
+
+&lt;h2 id=&quot;turn-off-yarn-vmem-check&quot;&gt;Turn off Yarn vmem check&lt;/h2&gt;
+&lt;p&gt;One other solution is to turn off Yarn vmem check.&lt;/p&gt;
+&lt;div class=&quot;language-xml highlighter-rouge&quot;&gt;&lt;pre class=&quot;highlight&quot;&gt;&lt;code&gt;&lt;span class=&quot;nt&quot;&gt;&amp;lt;property&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;name&amp;gt;&lt;/span&gt;yarn.nodemanager.vmem-check-enabled&lt;span class=&quot;nt&quot;&gt;&amp;lt;/name&amp;gt;&lt;/span&gt;
+  &lt;span class=&quot;nt&quot;&gt;&amp;lt;value&amp;gt;&lt;/span&gt;false&lt;span class=&quot;nt&quot;&gt;&amp;lt;/value&amp;gt;&lt;/span&gt;
+&lt;span class=&quot;nt&quot;&gt;&amp;lt;/property&amp;gt;&lt;/span&gt;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;/div&gt;
+&lt;p&gt;In most situations vmem in not relevant.
+As mentioned before it is not a limiting resource in 64-bit machines.&lt;/p&gt;
+
+&lt;p&gt;Also consider increasing &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt; which by default is 2.1.
+See
+&lt;a href=&quot;http://blog.cloudera.com/blog/2014/04/apache-hadoop-yarn-avoiding-6-time-consuming-gotchas/&quot;&gt;here&lt;/a&gt; and
+&lt;a href=&quot;https://www.mapr.com/blog/best-practices-yarn-resource-management&quot;&gt;here&lt;/a&gt; for some other best practices for Yarn resource management.&lt;/p&gt;
+
+&lt;h2 id=&quot;use-java-7&quot;&gt;Use Java 7&lt;/h2&gt;
+&lt;p&gt;One option would be to use Java-7 instead of 8.
+In some cases that might help.&lt;/p&gt;
+
+&lt;hr /&gt;
+&lt;p&gt;Physical memory is defined based on RSS.
+RSS is the Resident Set Size and only represents the amount of memory allocated which is in RAM, but not in SWAP.
+It also includes shared libraries which are currently loaded and are in RAM.
+On the other hand what we see here is the size of heap, which is not necessarily reflects the amount of memory is allocated for the Java threads.&lt;/p&gt;
+&lt;div class=&quot;footnotes&quot;&gt;
+  &lt;ol&gt;
+    &lt;li id=&quot;fn:pmem&quot;&gt;
+
+      &lt;p&gt;&lt;a href=&quot;#fnref:pmem&quot; class=&quot;reversefootnote&quot;&gt;&amp;#8617;&lt;/a&gt;&lt;/p&gt;
+    &lt;/li&gt;
+  &lt;/ol&gt;
+&lt;/div&gt;
+</description>
+                <link>http://a-ghorbani.github.io/2016/12/23/spark-on-yarn-and-java-8-and-virtual-memory-error</link>
+                <guid>http://a-ghorbani.github.io/2016/12/23/spark-on-yarn-and-java-8-and-virtual-memory-error</guid>
+                <pubDate>Fri, 23 Dec 2016 00:00:00 +0100</pubDate>
+        </item>
 
         <item>
                 <title>Data science with H2O</title>
@@ -1214,8 +1365,8 @@ $(document).ready(function () {
 &lt;/html&gt;
 
 </description>
-                <link>http://username.github.io/2016/11/24/data-science-with-h2o</link>
-                <guid>http://username.github.io/2016/11/24/data-science-with-h2o</guid>
+                <link>http://a-ghorbani.github.io/2016/11/24/data-science-with-h2o</link>
+                <guid>http://a-ghorbani.github.io/2016/11/24/data-science-with-h2o</guid>
                 <pubDate>Thu, 24 Nov 2016 00:00:00 +0100</pubDate>
         </item>
 

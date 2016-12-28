@@ -1,0 +1,336 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Spark on Yarn and virtual memory error</title>
+    <meta name="description" content="">
+    <meta name="author" content="Asghar Ghorbani">
+
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+      <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="/assets/themes/twitter/css/1.4.0/bootstrap.css" rel="stylesheet">
+    <link href="/assets/themes/twitter/css/style.css?body=1" rel="stylesheet" type="text/css" media="all">
+
+    <!-- Le fav and touch icons -->
+  <!-- Update these with your own images
+    <link rel="shortcut icon" href="images/favicon.ico">
+    <link rel="apple-touch-icon" href="images/apple-touch-icon.png">
+    <link rel="apple-touch-icon" sizes="72x72" href="images/apple-touch-icon-72x72.png">
+    <link rel="apple-touch-icon" sizes="114x114" href="images/apple-touch-icon-114x114.png">
+  -->
+  </head>
+
+  <body>
+
+    <div class="topbar">
+      <div class="fill">
+        <div class="container">
+          <a class="brand" href="/">scientia data</a>
+          <ul class="nav">
+            
+            
+            
+
+
+  
+    
+      
+      	
+      	<li><a href="/archive">Archive</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/categories">Categories</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+  
+    
+      
+      	
+      	<li><a href="/pages">Pages</a></li>
+      	
+      
+    
+  
+    
+      
+    
+  
+    
+      
+      	
+      	<li><a href="/tags">Tags</a></li>
+      	
+      
+    
+  
+    
+  
+
+
+
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+
+      <div class="content">
+        
+
+<div class="page-header">
+<h1>Spark on Yarn and virtual memory error <small> </small></h1>
+</div>
+
+<div class="row">
+  <div class="span10">
+    
+<p>Recently I wanted to try out some piece of code on Spark using a <a href="https://github.com/a-ghorbani/docker-spark-jupyter-scala">Docker image</a>.
+In this image Java-8 is installed (instead of Java-7).</p>
+
+<p>Running <code class="highlighter-rouge">spark-shell</code> in yarn mode led to the following error in the shell:</p>
+
+<div class="highlighter-rouge"><pre class="highlight"><code>6/12/25 16:56:11 ERROR spark.SparkContext: Error initializing SparkContext.
+org.apache.spark.SparkException: Yarn application has already ended! It might have been killed or unable to launch application master.
+</code></pre>
+</div>
+<p>and in the log file I have observed the following error of the virtual memory checker::</p>
+<div class="highlighter-rouge"><pre class="highlight"><code>Current usage: 304.1 MB of 1 GB physical memory used;
+*2.2 GB of 2.1 GB virtual memory used*. Killing container.
+{: style="color:gray;"}
+</code></pre>
+</div>
+
+<p>That is indeed a known problem,
+see for example
+<a href="https://www.ibm.com/developerworks/community/blogs/kevgrig/entry/linux_glibc_2_10_rhel_6_malloc_may_show_excessive_virtual_memory_usage?lang=en">here</a>,
+<a href="http://stackoverflow.com/questions/38988941/running-yarn-with-spark-not-working-with-java-8">here</a>,
+<a href="https://issues.apache.org/jira/browse/YARN-4714">here</a>,
+<a href="http://stackoverflow.com/questions/39467761/how-to-know-what-is-the-reason-for-closedchannelexceptions-with-spark-shell-in-y">here</a>.</p>
+
+<p>This problem happens due to the combination of the following points:</p>
+<ul>
+  <li><strong>glibc&gt;=2.10</strong>: Virtual memory footprint of processes has grown a lot since introduction of glibc:2.10 (e.g. in CentOS&gt;=6) due to some new features; memory pool per thread.</li>
+  <li><strong>Java-8</strong>: The above mentioned virtual memory footprint is more pronounced in Java-8 (compared to Java-7) due to <em>Metaspace</em> (which has replaced <em>PermGen</em>).</li>
+  <li><strong>Yarn</strong>: Yarn kills process that exceeds the limits that has been set for the resources it monitors, and Yarn by default monitors virtual memory.</li>
+</ul>
+
+<p>We can resolve the problem by eliminating one or some of the above mentioned points.
+But before taking the action, let in short have a look at each of these points.</p>
+
+<h2 id="glibc210-memory-pools-arena">glibc&gt;=2.10 memory pools (Arena)</h2>
+<p>Memory pool or <strong>arena</strong> is structure that is shared between one or more threads from which threads allocate memory.
+During memory allocation by a thread the arena is locked, so leads to contention over memory allocation in a multi-threaded application.
+For a nice detailed explanation see <a href="https://sourceware.org/glibc/wiki/MallocInternals">here</a>.</p>
+
+<p>From verion 2.10 glibc has introduced a new arena allocator design, which aimed to improve performance of multithreaded processes by implementing per thread memory pool.
+That means each thread has its own pool that can allocate memory from, so no contention over Memory allocation.</p>
+
+<p>This lead to increase of virtual memory (VIRT in top) footprint.
+Note that the only resource that is really consumed by these pools is the memory address space.
+The physical memory (RSS in top) is allocated only when memory allocation is requested by a thread.</p>
+
+<p>In a 64-bit machine the address space is huge. The current implementations
+<a href="https://en.wikipedia.org/wiki/X86-64#Virtual_address_space_details">supports 256TB</a>
+(including kernel space).
+So there should be no worry for this resource running out.
+See some additional explanation <a href="https://siddhesh.in/posts/malloc-per-thread-arenas-in-glibc.html">here</a></p>
+
+<p>By default maximum number of arenas in a 64-bit machine is <code class="highlighter-rouge">#core * 8</code>.
+Each  arena has a maximums size of 64MB.
+So if you are running you application on a 24 core machine that means the size of virtual memory should be in order of 24 * 8 * 64MB = 12GB.
+Even if your application physical memory is just few MB.
+The maximum number of Arena can be controlled by the environment variable <code class="highlighter-rouge">MALLOC_ARENA_MAX</code>.</p>
+
+<h2 id="java-8">Java 8</h2>
+
+<p>(Oracle) Java-8 makes the problem above more pronounced than Java-7 due to the fact that <em>PermGen</em> moved into native memory space (i.e. no longer contiguous to the Java heap).
+And it is called <em>Metaspace</em>.</p>
+
+<p>That means memory allocation in <em>Metaspace</em> it handled by <em>malloc()</em>,
+consequently a multi-threaded app will end up with multiple arenas being created.
+More details <a href="https://www.infoq.com/articles/Java-PERMGEN-Removed">here</a> <a href="http://info.prelert.com/blog/java-8-and-virtual-memory-on-linux">here</a> and <a href="https://dzone.com/articles/java-8-permgen-metaspace">here</a>.</p>
+
+<p>In order to see it in practice, I ran two hello world Java apps, one single-threaded and one multi-threaded, with both openjdk-1.8 and 1.7 with various values for MALLOC_ARENA_MAX.
+And plotted VIRT and RSS in all cases.
+The source code I have used to create that can found im my <a href="https://github.com/a-ghorbani/java-glibc-vmem-bechmark">github</a>.</p>
+
+<p><img src="/images/posts/2016-12-23-spark-on-yarn-and-java-8-and-virtual-memory-error/plot_mems.png" alt="vmem-vs-bm" /></p>
+
+<p>What is illustrated is virtual memory (vmem) and physical memory (pmem)<sup id="fnref:pmem"><a href="#fn:pmem" class="footnote">1</a></sup> (based on <code class="highlighter-rouge">ps</code> VIRT and RSS) for various max number of arena, which is controlled by environment variable <code class="highlighter-rouge">MALLOC_ARENA_MAX</code>.
+Test parameters:</p>
+<ul>
+  <li>JVM: java-7-openjdk-amd64 and java-8-openjdk-amd64</li>
+  <li>Max number of arenas: 1, 15 and default (which should be 32 as well (#core<em>8 = 4</em>8)).</li>
+  <li>Threads: 32.</li>
+  <li>Max heap size (Xmx): 100 MB.</li>
+</ul>
+
+<p>It can be seen that physical memory (pmem) for Java-7 is around 20-25MB and not that much variance.
+Java-8 consumes slightly more memory (slightly more than 25MB) and again not much variance.</p>
+
+<p>However, it is obvious that things are different for virtual memory (vmem).
+It can be seen that with increasing max number of arena vmem increases as well.
+Also it can be seen that Java-8 takes around 1GB more virtual memory than Java-7.</p>
+
+<h2 id="yarn">Yarn</h2>
+<p>Yarn kills process that exceeds the limits that has been set for the resources it monitors.
+Yarn by default monitors virtual memory,
+which is controlled by <code class="highlighter-rouge">yarn.nodemanager.vmem-check-enabled</code>,
+and the limit is controlled by <code class="highlighter-rouge">yarn.nodemanager.vmem-pmem-ratio</code>.</p>
+
+<h1 id="so-how-to-solve-the-problem">So how to solve the problem?</h1>
+<p>I talked to much I guess, let get rid of the error.
+To resolve the error we can do one of the following:</p>
+
+<h2 id="set-the-max-number-of-arena">Set the max number of Arena</h2>
+<p>Java is different form than OS native processes in that Java processes allocate memory from JVM heap.
+And JVM allocates heap infrequently in large amounts.
+Therefore, Java apps will not benefit much from arenas as the native processes would.</p>
+
+<p>So we can reduce the number of arena without much problem by setting <code class="highlighter-rouge">MALLOC_ARENA_MAX</code> in <code class="highlighter-rouge">hadoop-env.sh</code>:</p>
+<div class="language-bash highlighter-rouge"><pre class="highlight"><code><span class="nb">export </span><span class="nv">MALLOC_ARENA_MAX</span><span class="o">=</span>4
+</code></pre>
+</div>
+<p>It’s been <a href="https://issues.apache.org/jira/browse/HADOOP-7154">suggested</a> to use values like 2 to 4.</p>
+
+<h2 id="turn-off-yarn-vmem-check">Turn off Yarn vmem check</h2>
+<p>One other solution is to turn off Yarn vmem check.</p>
+<div class="language-xml highlighter-rouge"><pre class="highlight"><code><span class="nt">&lt;property&gt;</span>
+  <span class="nt">&lt;name&gt;</span>yarn.nodemanager.vmem-check-enabled<span class="nt">&lt;/name&gt;</span>
+  <span class="nt">&lt;value&gt;</span>false<span class="nt">&lt;/value&gt;</span>
+<span class="nt">&lt;/property&gt;</span>
+</code></pre>
+</div>
+<p>In most situations vmem in not relevant.
+As mentioned before it is not a limiting resource in 64-bit machines.</p>
+
+<p>Also consider increasing <code class="highlighter-rouge">yarn.nodemanager.vmem-pmem-ratio</code> which by default is 2.1.
+See
+<a href="http://blog.cloudera.com/blog/2014/04/apache-hadoop-yarn-avoiding-6-time-consuming-gotchas/">here</a> and
+<a href="https://www.mapr.com/blog/best-practices-yarn-resource-management">here</a> for some other best practices for Yarn resource management.</p>
+
+<h2 id="use-java-7">Use Java 7</h2>
+<p>One option would be to use Java-7 instead of 8.
+In some cases that might help.</p>
+
+<hr />
+<p>Physical memory is defined based on RSS.
+RSS is the Resident Set Size and only represents the amount of memory allocated which is in RAM, but not in SWAP.
+It also includes shared libraries which are currently loaded and are in RAM.
+On the other hand what we see here is the size of heap, which is not necessarily reflects the amount of memory is allocated for the Java threads.</p>
+<div class="footnotes">
+  <ol>
+    <li id="fn:pmem">
+
+      <p><a href="#fnref:pmem" class="reversefootnote">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+    <hr>
+    <div class="pagination">
+      <ul>
+      
+        <li class="prev"><a href="/2016/11/24/data-science-with-h2o" title="Data science with H2O">&larr; Previous</a></li>
+      
+        <li><a href="/archive.html">Archive</a></li>
+      
+        <li class="next disabled"><a>Next &rarr;</a>
+      
+      </ul>
+    </div>
+    <hr>
+    
+
+
+  <div id="disqus_thread"></div>
+<script type="text/javascript">
+    
+    var disqus_developer = 1;
+    var disqus_shortname = 'jekyllbootstrap'; // required: replace example with your forum shortname
+    
+    /* * * DON'T EDIT BELOW THIS LINE * * */
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+
+
+
+
+  </div>
+  
+  <div class="span4">
+    <h4>Published</h4>
+    <div class="date"><span>23 December 2016</span></div>
+
+  
+    <h4>Tags</h4>
+    <ul class="tag_box">
+    
+    
+
+
+  
+     
+    	<li><a href="/tags.html#Yarn-ref">Yarn <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#Spark-ref">Spark <span>1</span></a></li>
+     
+    	<li><a href="/tags.html#Virtual memory-ref">Virtual memory <span>1</span></a></li>
+    
+  
+
+
+
+    </ul>
+    
+  </div>
+</div>
+
+
+      </div>
+
+      <footer>
+        <p>&copy; Asghar Ghorbani 2012 
+          with help from <a href="http://jekyllbootstrap.com" target="_blank" title="The Definitive Jekyll Blogging Framework">Jekyll Bootstrap</a>
+          and <a href="http://twitter.github.com/bootstrap/" target="_blank">Twitter Bootstrap</a>
+        </p>
+      </footer>
+
+    </div> <!-- /container -->
+
+    
+
+
+
+  </body>
+</html>
+
