@@ -143,6 +143,7 @@ One option would be to use Java-7 instead of 8.
 In some cases that might help.
 
 -----
+
 # Footnotes
 
 [^pmem]: Physical memory is defined based on RSS. RSS is the Resident Set Size and only represents the amount of memory allocated which is in RAM, but not in SWAP. It also includes shared libraries which are currently loaded and are in RAM. On the other hand what we see here is the size of heap, which is not necessarily reflects the amount of memory is allocated for the Java threads.
