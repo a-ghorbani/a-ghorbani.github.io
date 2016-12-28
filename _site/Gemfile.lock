@@ -23,7 +23,6 @@ GEM
       sass (~> 3.4)
     jekyll-sitemap (0.12.0)
       jekyll (~> 3.3)
-    jekyll-swiss (0.4.0)
     jekyll-watch (1.5.0)
       listen (~> 3.0, < 3.1)
     kramdown (1.13.0)
@@ -58,7 +57,6 @@ DEPENDENCIES
   jekyll (~> 3.1)
   jekyll-compose
   jekyll-sitemap
-  jekyll-swiss
   pygments.rb
 
 BUNDLED WITH

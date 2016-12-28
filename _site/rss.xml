@@ -5,8 +5,8 @@
         <description>scientia data - Asghar Ghorbani</description>
         <link>http://a-ghorbani.github.io</link>
         <atom:link href="http://a-ghorbani.github.io/rss.xml" rel="self" type="application/rss+xml" />
-        <lastBuildDate>Wed, 28 Dec 2016 18:36:37 +0100</lastBuildDate>
-        <pubDate>Wed, 28 Dec 2016 18:36:37 +0100</pubDate>
+        <lastBuildDate>Wed, 28 Dec 2016 18:43:16 +0100</lastBuildDate>
+        <pubDate>Wed, 28 Dec 2016 18:43:16 +0100</pubDate>
         <ttl>60</ttl>
 
 
@@ -16,14 +16,14 @@
 &lt;p&gt;Recently I wanted to try out some piece of code on Spark using a &lt;a href=&quot;https://github.com/a-ghorbani/docker-spark-jupyter-scala&quot;&gt;Docker image&lt;/a&gt;.
 In this image Java-8 is installed (instead of Java-7).&lt;/p&gt;
 
-&lt;p&gt;Running &lt;code&gt;spark-shell&lt;/code&gt; in yarn mode led to the following error in the shell:&lt;/p&gt;
+&lt;p&gt;Running &lt;code class=&quot;highlighter-rouge&quot;&gt;spark-shell&lt;/code&gt; in yarn mode led to the following error in the shell:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;6/12/25 16:56:11 ERROR spark.SparkContext: Error initializing SparkContext.
 org.apache.spark.SparkException: Yarn application has already ended! It might have been killed or unable to launch application master.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;and in the log file I have observed the following error regarding the virtual memory checker:&lt;/p&gt;
 
-&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Current usage: 304.1 MB of &lt;span class=&quot;m&quot;&gt;1&lt;/span&gt; GB physical memory used&lt;span class=&quot;p&quot;&gt;;&lt;/span&gt;
+&lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;Current usage: 304.1 MB of 1 GB physical memory used;
 2.2 GB of 2.1 GB virtual memory used. Killing container.&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
 &lt;p&gt;That is indeed a known problem,
@@ -61,11 +61,11 @@ The physical memory (RSS in top) is allocated only when memory allocation is req
 So there should be no worries for this resource to run out.
 See some additional explanation &lt;a href=&quot;https://siddhesh.in/posts/malloc-per-thread-arenas-in-glibc.html&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;By default maximum number of arenas in a 64-bit machine is &lt;code&gt;#core * 8&lt;/code&gt;.
+&lt;p&gt;By default maximum number of arenas in a 64-bit machine is &lt;code class=&quot;highlighter-rouge&quot;&gt;#core * 8&lt;/code&gt;.
 Each  arena has a maximums size of 64MB.
 So if you are running you application on a 24 core machine that means the size of virtual memory should be in order of 24 * 8 * 64MB = 12GB.
 Even if your application physical memory is just few MB.
-The maximum number of Arena can be controlled by the environment variable &lt;code&gt;MALLOC_ARENA_MAX&lt;/code&gt;.&lt;/p&gt;
+The maximum number of Arena can be controlled by the environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h2 id=&quot;java-8&quot;&gt;Java 8&lt;/h2&gt;
 
@@ -84,7 +84,7 @@ The source code I have used to create can found on my &lt;a href=&quot;https://g
 
 &lt;p&gt;&lt;img src=&quot;/images/posts/2016-12-23-spark-on-yarn-and-java-8-and-virtual-memory-error/plot_mems.png&quot; alt=&quot;vmem-vs-bm&quot; /&gt;&lt;/p&gt;
 
-&lt;p&gt;What is illustrated is virtual memory (vmem) and physical memory (pmem)&lt;sup id=&quot;fnref:pmem&quot;&gt;&lt;a href=&quot;#fn:pmem&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; (based on &lt;code&gt;ps&lt;/code&gt; VIRT and RSS) for various max number of arena, which is controlled by environment variable &lt;code&gt;MALLOC_ARENA_MAX&lt;/code&gt;.
+&lt;p&gt;What is illustrated is virtual memory (vmem) and physical memory (pmem)&lt;sup id=&quot;fnref:pmem&quot;&gt;&lt;a href=&quot;#fn:pmem&quot; class=&quot;footnote&quot;&gt;1&lt;/a&gt;&lt;/sup&gt; (based on &lt;code class=&quot;highlighter-rouge&quot;&gt;ps&lt;/code&gt; VIRT and RSS) for various max number of arena, which is controlled by environment variable &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt;.
 Test parameters:&lt;/p&gt;
 &lt;ul&gt;
   &lt;li&gt;JVM: java-7-openjdk-amd64 and java-8-openjdk-amd64&lt;/li&gt;
@@ -103,8 +103,8 @@ Also it can be seen that Java-8 takes around 1GB more virtual memory than Java-7
 &lt;h2 id=&quot;yarn&quot;&gt;Yarn&lt;/h2&gt;
 &lt;p&gt;Yarn kills process that exceeds the limits that has been set for the resources it monitors.
 Yarn by default monitors virtual memory,
-which is controlled by &lt;code&gt;yarn.nodemanager.vmem-check-enabled&lt;/code&gt;,
-and the limit is controlled by &lt;code&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt;.&lt;/p&gt;
+which is controlled by &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-check-enabled&lt;/code&gt;,
+and the limit is controlled by &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt;.&lt;/p&gt;
 
 &lt;h1 id=&quot;so-how-to-solve-the-problem&quot;&gt;So how to solve the problem?&lt;/h1&gt;
 &lt;p&gt;I talked to much I guess, now let get rid of the error.
@@ -115,7 +115,7 @@ To resolve the error we can do one of the following:&lt;/p&gt;
 And JVM allocates heap infrequently in large amounts.
 Therefore, Java apps will not benefit much from arenas as the native processes would.&lt;/p&gt;
 
-&lt;p&gt;So we can reduce the number of arena without much problem by setting &lt;code&gt;MALLOC_ARENA_MAX&lt;/code&gt; in &lt;code&gt;hadoop-env.sh&lt;/code&gt;:&lt;/p&gt;
+&lt;p&gt;So we can reduce the number of arena without much problem by setting &lt;code class=&quot;highlighter-rouge&quot;&gt;MALLOC_ARENA_MAX&lt;/code&gt; in &lt;code class=&quot;highlighter-rouge&quot;&gt;hadoop-env.sh&lt;/code&gt;:&lt;/p&gt;
 
 &lt;figure class=&quot;highlight&quot;&gt;&lt;pre&gt;&lt;code class=&quot;language-bash&quot; data-lang=&quot;bash&quot;&gt;&lt;span class=&quot;nb&quot;&gt;export &lt;/span&gt;&lt;span class=&quot;nv&quot;&gt;MALLOC_ARENA_MAX&lt;/span&gt;&lt;span class=&quot;o&quot;&gt;=&lt;/span&gt;4&lt;/code&gt;&lt;/pre&gt;&lt;/figure&gt;
 
@@ -133,7 +133,7 @@ Therefore, Java apps will not benefit much from arenas as the native processes w
 &lt;p&gt;In most situations vmem in not relevant.
 As mentioned before it is not a limiting resource in 64-bit machines.&lt;/p&gt;
 
-&lt;p&gt;Also consider increasing &lt;code&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt; which by default is 2.1.
+&lt;p&gt;Also consider increasing &lt;code class=&quot;highlighter-rouge&quot;&gt;yarn.nodemanager.vmem-pmem-ratio&lt;/code&gt; which by default is 2.1.
 See
 &lt;a href=&quot;http://blog.cloudera.com/blog/2014/04/apache-hadoop-yarn-avoiding-6-time-consuming-gotchas/&quot;&gt;here&lt;/a&gt; and
 &lt;a href=&quot;https://www.mapr.com/blog/best-practices-yarn-resource-management&quot;&gt;here&lt;/a&gt; for some other best practices for Yarn resource management.&lt;/p&gt;
