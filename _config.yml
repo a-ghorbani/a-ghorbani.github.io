@@ -16,8 +16,9 @@ author :
   name : Asghar Ghorbani 
   email : ghorbani59@gmail.com
   github : a-ghorbani
-  twitter : 
-  feedburner : 
+  linkedin: aghorbani
+  twitter :
+  feedburner :
 
 
 # The production_url is only used when full-domain names are needed
@@ -33,6 +34,15 @@ production_url : http://a-ghorbani.github.io
 gems: 
     - jekyll-sitemap
 
+kramdown:
+  auto_ids:       true
+  footnote_nr:    1
+  entity_output:  as_char
+  toc_levels:     1..6
+  smart_quotes:   lsquo,rsquo,ldquo,rdquo
+  input:          GFM
+  hard_wrap:      false
+  footnote_nr:    1
 
 # All Jekyll-Bootstrap specific configurations are namespaced into this hash
 #
