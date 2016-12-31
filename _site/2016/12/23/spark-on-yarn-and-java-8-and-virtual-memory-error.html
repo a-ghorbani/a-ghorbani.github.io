@@ -176,8 +176,8 @@ And it is called <em>Metaspace</em>.</p>
 consequently a multi-threaded app will end up with multiple arenas being created.
 More details <a href="https://www.infoq.com/articles/Java-PERMGEN-Removed">here</a> <a href="http://info.prelert.com/blog/java-8-and-virtual-memory-on-linux">here</a> and <a href="https://dzone.com/articles/java-8-permgen-metaspace">here</a>.</p>
 
-<p>In order to see the impact of number of arenas on virtual memory, 
-I ran two hello world Java apps, 
+<p>In order to see the impact of number of arenas on virtual memory,
+I ran two hello world Java apps,
 with both openjdk-1.8 and 1.7 with various values for MALLOC_ARENA_MAX.
 And plotted VIRT and RSS in all cases.
 The source code I have used to create can found on my <a href="https://github.com/a-ghorbani/java-glibc-vmem-bechmark">github</a>.</p>
@@ -296,8 +296,11 @@ In some cases that might help.</p>
 -->
 
 <!-- Reddit -->
-<li><script type="text/javascript" src="http://www.reddit.com/buttonlite.js?i=4"></script>
+<!-- <li><script type="text/javascript" src="http://www.reddit.com/buttonlite.js?i=4"></script>
+-->
+
 </ul>
+
 
 <script>
 
@@ -354,20 +357,27 @@ In some cases that might help.</p>
 
 
   <div id="disqus_thread"></div>
-<script type="text/javascript">
-    
-    var disqus_developer = 1;
-    var disqus_shortname = 'https-a-ghorbani-github-io'; // required: replace example with your forum shortname
-    
-    /* * * DON'T EDIT BELOW THIS LINE * * */
-    (function() {
-        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
-        dsq.src = 'http://' + disqus_shortname + '.disqus.com/embed.js';
-        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
-    })();
+<script>
+/**
+*  RECOMMENDED CONFIGURATION VARIABLES: EDIT AND UNCOMMENT THE SECTION BELOW TO INSERT DYNAMIC VALUES FROM YOUR PLATFORM OR CMS.
+*  LEARN WHY DEFINING THESE VARIABLES IS IMPORTANT: https://disqus.com/admin/universalcode/#configuration-variables*/
+/*
+*/
+
+var disqus_developer = 1;
+var disqus_shortname = 'https-a-ghorbani-github-io'; // required: replace example with your forum shortname
+var disqus_config = function () {
+  this.page.url = 'http://a-ghorbani.github.io/2016/12/23/spark-on-yarn-and-java-8-and-virtual-memory-error';  // Replace PAGE_URL with your page's canonical URL variable
+  this.page.identifier = '/2016/12/23/spark-on-yarn-and-java-8-and-virtual-memory-error'; // Replace PAGE_IDENTIFIER with your page's unique identifier variable
+};
+(function() { // DON'T EDIT BELOW THIS LINE
+var d = document, s = d.createElement('script');
+s.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+s.setAttribute('data-timestamp', +new Date());
+(d.head || d.body).appendChild(s);
+})();
 </script>
-<noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
-<a href="http://disqus.com" class="dsq-brlink">blog comments powered by <span class="logo-disqus">Disqus</span></a>
+<noscript>Please enable JavaScript to view the <a href="https://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
 
 
 

@@ -74,8 +74,8 @@ That means memory allocation in *Metaspace* it handled by *malloc()*,
 consequently a multi-threaded app will end up with multiple arenas being created.
 More details [here](https://www.infoq.com/articles/Java-PERMGEN-Removed) [here](http://info.prelert.com/blog/java-8-and-virtual-memory-on-linux) and [here](https://dzone.com/articles/java-8-permgen-metaspace).
 
-In order to see the impact of number of arenas on virtual memory, 
-I ran two hello world Java apps, 
+In order to see the impact of number of arenas on virtual memory,
+I ran two hello world Java apps,
 with both openjdk-1.8 and 1.7 with various values for MALLOC_ARENA_MAX.
 And plotted VIRT and RSS in all cases.
 The source code I have used to create can found on my [github](https://github.com/a-ghorbani/java-glibc-vmem-bechmark).
@@ -147,4 +147,3 @@ In some cases that might help.
 # Footnotes
 
 [^pmem]: Physical memory is defined based on RSS. RSS is the Resident Set Size and only represents the amount of memory allocated which is in RAM, but not in SWAP. It also includes shared libraries which are currently loaded and are in RAM. On the other hand what we see here is the size of heap, which is not necessarily reflects the amount of memory is allocated for the Java threads.
-

@@ -5,8 +5,8 @@
         <description>scientia data - Asghar Ghorbani</description>
         <link>http://a-ghorbani.github.io</link>
         <atom:link href="http://a-ghorbani.github.io/rss.xml" rel="self" type="application/rss+xml" />
-        <lastBuildDate>Sat, 31 Dec 2016 14:54:46 +0100</lastBuildDate>
-        <pubDate>Sat, 31 Dec 2016 14:54:46 +0100</pubDate>
+        <lastBuildDate>Sat, 31 Dec 2016 16:01:09 +0100</lastBuildDate>
+        <pubDate>Sat, 31 Dec 2016 16:01:09 +0100</pubDate>
         <ttl>60</ttl>
 
 
@@ -76,8 +76,8 @@ And it is called &lt;em&gt;Metaspace&lt;/em&gt;.&lt;/p&gt;
 consequently a multi-threaded app will end up with multiple arenas being created.
 More details &lt;a href=&quot;https://www.infoq.com/articles/Java-PERMGEN-Removed&quot;&gt;here&lt;/a&gt; &lt;a href=&quot;http://info.prelert.com/blog/java-8-and-virtual-memory-on-linux&quot;&gt;here&lt;/a&gt; and &lt;a href=&quot;https://dzone.com/articles/java-8-permgen-metaspace&quot;&gt;here&lt;/a&gt;.&lt;/p&gt;
 
-&lt;p&gt;In order to see the impact of number of arenas on virtual memory, 
-I ran two hello world Java apps, 
+&lt;p&gt;In order to see the impact of number of arenas on virtual memory,
+I ran two hello world Java apps,
 with both openjdk-1.8 and 1.7 with various values for MALLOC_ARENA_MAX.
 And plotted VIRT and RSS in all cases.
 The source code I have used to create can found on my &lt;a href=&quot;https://github.com/a-ghorbani/java-glibc-vmem-bechmark&quot;&gt;github&lt;/a&gt;.&lt;/p&gt;
